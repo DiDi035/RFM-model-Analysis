@@ -21,9 +21,5 @@ RFM_COMPARISIONS_1 = {
     ('monetary', 'recency'): 3
 }
 
-CHOSEN_COMPARISONS = RFM_COMPARISIONS_1
-
-RFM = ahpy.Compare(
-    name='RFM model', comparisons=CHOSEN_COMPARISONS, precision=3, random_index='saaty')
-
-print(RFM.target_weights)
+# RFM_WEIGHTS = ahpy.Compare(
+#     name='RFM model', comparisons=CHOSEN_COMPARISONS, precision=3, random_index='saaty')
