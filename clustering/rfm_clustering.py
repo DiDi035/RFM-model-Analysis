@@ -41,7 +41,7 @@ DATA_PATH = './split_data/training/datasource_4.csv'
 
 
 def K_mean_model(RFM_norm, num_clusters):
-    model_clus = KMeans(n_clusters=num_clusters, max_iter=50)
+    model_clus = KMeans(n_clusters=num_clusters, max_iter=100)
     model_clus.fit(RFM_norm)
     RFM_km = pd.concat([RFM, pd.Series(model_clus.labels_)], axis=1)
     RFM_km.columns = ['customer_id', 'total_amount',
@@ -171,8 +171,8 @@ RFM_norm1 = standard_scaler.fit_transform(RFM_norm1)
 RFM_norm1 = pd.DataFrame(RFM_norm1)
 RFM_norm1.columns = ['Frequency', 'Amount', 'Recency']
 
-# Calculate Hopkins Statist
-# NOTE: hopkins_score = ~0.8767 => The dataset has a high tendency to cluster!
+# # Calculate Hopkins Statist
+# # NOTE: hopkins_score = ~0.8767 => The dataset has a high tendency to cluster!
 # print(hopkins(RFM_norm1))
 
 # Silhouette Analysis
@@ -182,20 +182,20 @@ RFM_norm1.columns = ['Frequency', 'Amount', 'Recency']
 # Kmeans
 RFM_km = K_mean_model(RFM_norm1, 5)
 
-km_clusters_amount = pd.DataFrame(
-    RFM_km.groupby(["cluster_id"]).total_amount.mean())
-km_clusters_frequency = pd.DataFrame(
-    RFM_km.groupby(["cluster_id"]).num_trans.mean())
-km_clusters_recency = pd.DataFrame(
-    RFM_km.groupby(["cluster_id"]).recency.mean())
+# km_clusters_amount = pd.DataFrame(
+#     RFM_km.groupby(["cluster_id"]).total_amount.mean())
+# km_clusters_frequency = pd.DataFrame(
+#     RFM_km.groupby(["cluster_id"]).num_trans.mean())
+# km_clusters_recency = pd.DataFrame(
+#     RFM_km.groupby(["cluster_id"]).recency.mean())
 
-df = pd.concat([pd.Series([0, 1, 2, 3, 4]), km_clusters_recency,
-               km_clusters_frequency, km_clusters_amount], axis=1)
-df.columns = ["cluster_id", "recency_mean", "frequency_mean", "monetary_mean"]
+# df = pd.concat([pd.Series([0, 1, 2, 3, 4]), km_clusters_recency,
+#                km_clusters_frequency, km_clusters_amount], axis=1)
+# df.columns = ["cluster_id", "recency_mean", "frequency_mean", "monetary_mean"]
 
-sns.barplot(x=df.cluster_id, y=df.recency_mean)
-plt.title('recency_mean')
-print(df)
+# sns.barplot(x=df.cluster_id, y=df.recency_mean)
+# plt.title('recency_mean')
+# print(df)
 
 rfm_weights = ahpy.Compare(
     name='RFM model', comparisons=AHP.RFM_COMPARISIONS_1, precision=3, random_index='saaty')
@@ -205,7 +205,6 @@ rfm_weights_arr = np.array([
     float(rfm_weights.target_weights['frequency']),
     float(rfm_weights.target_weights['monetary'])
 ])
-print(rfm_weights_arr)
 
 RFM_sum = np.array([
     RFM_km.groupby(["cluster_id"]).recency.mean().to_numpy(),
@@ -214,6 +213,7 @@ RFM_sum = np.array([
 ])
 
 result = rfm_weights_arr*RFM_sum.T
+clv = []
 
 for idx, rfm in enumerate(result):
-    print(f'CLuster {idx} CLV: {np.sum(rfm)}')
+    clv.append(np.sum(rfm))
