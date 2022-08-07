@@ -17,4 +17,4 @@ print(sorted_RFM)
 print('###### data_from_highest_cluster ###########')
 print(data_from_highest_cluster)
 print(count)
-print((count/len(data_from_highest_cluster))*100) # ~ 94 - 95%
+print((count/len(data_from_highest_cluster))*100)  # ~ 94 - 95%

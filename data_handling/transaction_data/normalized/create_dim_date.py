@@ -40,10 +40,10 @@ for row in csvreader:
         continue
     else:
         item = {
-           'date_key': row[2], 
-           'quarter_start_day': getStartDay(arr[0], arr[1]), 
-           'quarter_end_day': getEndDay(arr[0], arr[1]), 
-           'quarter': arr[0], 
+           'date_key': row[2],
+           'quarter_start_day': getStartDay(arr[0], arr[1]),
+           'quarter_end_day': getEndDay(arr[0], arr[1]),
+           'quarter': arr[0],
            'year': arr[1],
         }
     map[row[2]] = item

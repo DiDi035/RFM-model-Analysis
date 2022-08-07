@@ -1,43 +1,36 @@
 # AHP model
-import ahpy
-import AHP
-
-# Importing Libraries
-import pandas as pd
-import numpy as np
-
-# For Silhouette Analysis
-from sklearn.metrics import silhouette_score
-
-# For Visualisation
-import matplotlib.pyplot as plt
-import seaborn as sns
-
-# To Scale our data
-from sklearn.preprocessing import scale
-from sklearn.preprocessing import StandardScaler
-
-# To perform KMeans clustering
-from sklearn.cluster import KMeans
-
-# Hopkins Statistics
-from random import sample
-from numpy.random import uniform
-from math import isnan
-from sklearn.neighbors import NearestNeighbors
-
-# To perform Hierarchical clustering
-from scipy.cluster.hierarchy import linkage
-from scipy.cluster.hierarchy import dendrogram
-from scipy.cluster.hierarchy import cut_tree
-
 # To handle datetime
 from datetime import datetime
+from math import isnan
+# Hopkins Statistics
+from random import sample
+
+import ahpy
+# For Visualisation
+import matplotlib.pyplot as plt
+import numpy as np
+# Importing Libraries
+import pandas as pd
+from numpy.random import uniform
+# To perform KMeans clustering
+from sklearn.cluster import KMeans
+# For Silhouette Analysis
+from sklearn.metrics import (accuracy_score, classification_report,
+                             confusion_matrix, silhouette_score)
+from sklearn.neighbors import NearestNeighbors
+# To Scale our data
+from sklearn.preprocessing import StandardScaler
+
+import AHP
+import random_forest as tree_classifier
 
 BASE_DATE = datetime(1990, 1, 1)
-END_DATE = datetime(2014, 12, 31)  # last date of the 3rd quarter
+END_DATE = datetime(2017, 12, 31)
 CONVERTED_END_DATE = (END_DATE - BASE_DATE).days
-DATA_PATH = './split_data/training/datasource_4.csv'
+TRANSACTION_DATA_PATH = \
+    './data_handling/transaction_data/split/training/datasource_5.csv'
+DEMOGRAPHIC_DATA_PATH = \
+    './data_handling/customer_data/cleanned/datasource_5.csv'
 
 
 def K_mean_model(RFM_norm, num_clusters):
@@ -60,14 +53,18 @@ def normalized_data(raw_data):
 
     for index, row in raw_data.iterrows():
         existing_customer_index = id_to_rfm_map['customer_id'].index(
-            row['customer_id']) if row['customer_id'] in id_to_rfm_map['customer_id'] else -1
+            row['customer_id']) if \
+            row['customer_id'] in id_to_rfm_map['customer_id'] else -1
         if existing_customer_index != -1:
-            id_to_rfm_map['total_amount'][existing_customer_index] = id_to_rfm_map[
-                'total_amount'][existing_customer_index] + float(row['total_amount'])
-            id_to_rfm_map['num_trans'][existing_customer_index] = id_to_rfm_map[
-                'num_trans'][existing_customer_index] + float(row['num_trans'])
+            id_to_rfm_map['total_amount'][existing_customer_index] = \
+                id_to_rfm_map['total_amount'][existing_customer_index] \
+                + float(row['total_amount'])
+            id_to_rfm_map['num_trans'][existing_customer_index] = \
+                id_to_rfm_map['num_trans'][existing_customer_index] \
+                + float(row['num_trans'])
             id_to_rfm_map['last_transaction'][existing_customer_index] = max(
-                id_to_rfm_map['last_transaction'][existing_customer_index], float(row['last_transaction']))
+                id_to_rfm_map['last_transaction'][existing_customer_index],
+                float(row['last_transaction']))
         else:
             id_to_rfm_map['customer_id'].append(row['customer_id'])
             id_to_rfm_map['total_amount'].append(float(row['total_amount']))
@@ -150,7 +147,7 @@ def silhouette_analysis(X, max_clusters, min_clusters=2, draw_plot=True):
 
 
 # reading Dataset and extract RFM values
-df = pd.read_csv(DATA_PATH, sep=',', encoding='ISO-8859-1',
+df = pd.read_csv(TRANSACTION_DATA_PATH, sep=',', encoding='ISO-8859-1',
                  header=0, low_memory=False)
 RFM = df[['customer_id', 'total_amount', 'num_trans', 'last_transaction']]
 norm_data = normalized_data(RFM)
@@ -171,8 +168,9 @@ RFM_norm1 = standard_scaler.fit_transform(RFM_norm1)
 RFM_norm1 = pd.DataFrame(RFM_norm1)
 RFM_norm1.columns = ['Frequency', 'Amount', 'Recency']
 
-# # Calculate Hopkins Statist
-# # NOTE: hopkins_score = ~0.8767 => The dataset has a high tendency to cluster!
+# Calculate Hopkins Statist
+# NOTE: hopkins_score = ~0.8767
+# => The dataset has a high tendency to cluster!
 # print(hopkins(RFM_norm1))
 
 # Silhouette Analysis
@@ -180,7 +178,7 @@ RFM_norm1.columns = ['Frequency', 'Amount', 'Recency']
 # sse = silhouette_analysis(RFM_norm1, 7, draw_plot=True)
 
 # Kmeans
-RFM_km = K_mean_model(RFM_norm1, 5)
+RFM_km = K_mean_model(RFM_norm1, 2)
 
 # km_clusters_amount = pd.DataFrame(
 #     RFM_km.groupby(["cluster_id"]).total_amount.mean())
@@ -191,20 +189,30 @@ RFM_km = K_mean_model(RFM_norm1, 5)
 
 # df = pd.concat([pd.Series([0, 1, 2, 3, 4]), km_clusters_recency,
 #                km_clusters_frequency, km_clusters_amount], axis=1)
-# df.columns = ["cluster_id", "recency_mean", "frequency_mean", "monetary_mean"]
+# df.columns = [
+#     "cluster_id",
+#     "recency_mean",
+#     "frequency_mean",
+#     "monetary_mean"
+# ]
 
 # sns.barplot(x=df.cluster_id, y=df.recency_mean)
 # plt.title('recency_mean')
 # print(df)
 
 rfm_weights = ahpy.Compare(
-    name='RFM model', comparisons=AHP.RFM_COMPARISIONS_1, precision=3, random_index='saaty')
+    name='RFM model',
+    comparisons=AHP.RFM_COMPARISIONS_1,
+    precision=3,
+    random_index='saaty')
 
 rfm_weights_arr = np.array([
     -float(rfm_weights.target_weights['recency']),
     float(rfm_weights.target_weights['frequency']),
     float(rfm_weights.target_weights['monetary'])
 ])
+
+num_users_each_cluster = RFM_km.groupby(["cluster_id"])['cluster_id'].count()
 
 RFM_sum = np.array([
     RFM_km.groupby(["cluster_id"]).recency.mean().to_numpy(),
@@ -216,4 +224,20 @@ result = rfm_weights_arr*RFM_sum.T
 clv = []
 
 for idx, rfm in enumerate(result):
-    clv.append(np.sum(rfm))
+    clv.append(np.sum(rfm)/num_users_each_cluster[idx])
+
+highest_clv_cluster_idx = clv.index(max(clv))
+customer_data = pd.read_csv(DEMOGRAPHIC_DATA_PATH,
+                            sep=',', encoding='ISO-8859-1',
+                            header=0, low_memory=False)
+# make the data be the same format with DB
+customer_data['customer_id'] = customer_data['id']
+customer_data.drop('id', inplace=True, axis=1)
+
+RFM_km_with_labels = tree_classifier \
+    .pre_processing(customer_data, RFM_km, highest_clv_cluster_idx)
+
+y_pred, y_test = tree_classifier.call(RFM_km_with_labels)
+customer_data['labels'] = y_pred
+result = customer_data[['customer_id', 'labels']]
+print(result.to_dict('records'))
